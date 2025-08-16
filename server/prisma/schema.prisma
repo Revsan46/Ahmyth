@@ -1,0 +1,88 @@
+datasource db { provider = "postgresql"; url = env("DATABASE_URL") }
+ generator client { provider = "prisma-client-js" }
+
+model User {
+	id            String    @id @default(cuid())
+	createdAt     DateTime  @default(now())
+	identifier    String    @unique
+	displayName   String?
+	devices       Device[]
+	chats         ChatMember[]
+}
+
+model Device {
+	id              String   @id @default(cuid())
+	userId          String
+	user            User     @relation(fields: [userId], references: [id])
+	createdAt       DateTime @default(now())
+	lastSeenAt      DateTime @default(now())
+	identityKey     String
+	signedPreKey    String
+	signedPreKeySig String
+	oneTimePreKeys  Json?
+}
+
+model Chat {
+	id           String        @id @default(cuid())
+	type         String
+	createdAt    DateTime      @default(now())
+	members      ChatMember[]
+	messages     Message[]
+}
+
+model ChatMember {
+	id         String   @id @default(cuid())
+	chatId     String
+	userId     String
+	role       String
+	joinedAt   DateTime @default(now())
+	@@unique([chatId, userId])
+}
+
+model Message {
+	id         String   @id @default(cuid())
+	chatId     String
+	senderId   String
+	createdAt  DateTime @default(now())
+	header     String
+	ciphertext String
+	attachments Attachment[]
+	reads      ReadReceipt[]
+	@@index([chatId, createdAt])
+	@@index([senderId, createdAt])
+}
+
+model Attachment {
+	id        String   @id @default(cuid())
+	messageId String
+	key       String
+	contentType String
+	size      Int
+	createdAt DateTime @default(now())
+	message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+model ReadReceipt {
+	id        String   @id @default(cuid())
+	messageId String
+	userId    String
+	readAt    DateTime @default(now())
+	@@unique([messageId, userId])
+}
+
+model Otp {
+	id          String   @id @default(cuid())
+	identifier  String
+	code        String
+	expiresAt   DateTime
+}
+
+model Session {
+	id            String   @id @default(cuid())
+	userId        String
+	deviceId      String
+	accessToken   String   @unique
+	refreshToken  String   @unique
+	createdAt     DateTime @default(now())
+	expiresAt     DateTime
+}
